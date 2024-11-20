@@ -2,6 +2,11 @@
 
 //TAKEN FROM SUPERBLT
 
+
+bool open_console = false;
+
+
+
 namespace
 {
 	class outbuf : public std::streambuf
@@ -28,7 +33,7 @@ static BOOL WINAPI MyConsoleCtrlHandler(DWORD dwCtrlEvent)
 
 CConsole::CConsole() : m_OwnConsole(false)
 {
-	if (!AllocConsole()) return;
+	if (!open_console || !AllocConsole()) return;
 
 	SetConsoleCtrlHandler(MyConsoleCtrlHandler, TRUE);
 	RemoveMenu(GetSystemMenu(GetConsoleWindow(), FALSE), SC_CLOSE, MF_BYCOMMAND);
@@ -58,6 +63,10 @@ const CConsole* console = NULL;
 
 void CConsole::openConsole()
 {
+	if (!open_console) {
+		return;
+	}
+
 	if (!console)
 	{
 		console = new CConsole();

@@ -4,8 +4,6 @@
 #include "player.h"
 #include "hooks.h"
 
-bool open_console = false;
-
 static CConsole console;
 Player player;
 static Hooks hooks;
@@ -28,9 +26,7 @@ DWORD Main::getPid() {
 }
 
 void Main::initialize() {
-	if (open_console) {
-		console.openConsole();
-	}
+	console.openConsole();
 
 	LOG("CONSOLE LOADED!");
 
