@@ -13,8 +13,8 @@ class Player
 
 		//const char* location;
 
-		uintptr_t playerClass();
-		int updateHealth();
+		uintptr_t playerClass(longlong player_class = NULL);
+		int updateHealth(longlong player_class = NULL);
 		void patchFunctions();
 		void hookFunctions();
 };

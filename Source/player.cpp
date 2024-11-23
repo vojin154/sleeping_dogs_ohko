@@ -4,34 +4,6 @@ Main main_class;
 static Hooks hooks;
 static Player player;
 
-uintptr_t Player::playerClass() {
-	uintptr_t base_address = main_class.getBaseAddress();
-	uintptr_t value = hooks.readAddress(base_address + 0x0208B258, { 0x68, 0x0, 0x10, 0x0 });
-
-	if (!value) {
-		return 0;
-	}
-
-	return value;
-}
-
-int Player::updateHealth() {
-	uintptr_t player = this->playerClass();
-	if (!player) {
-		return 0;
-	}
-
-	uintptr_t* value = (uintptr_t*)(player + 0x54);
-	if (!value) {
-		return 0;
-	}
-
-	this->health = (float*)value;
-
-
-	return 1;
-}
-
 void _patchFunc(uintptr_t pointer, int bytes) {
 	uintptr_t base_address = main_class.getBaseAddress();
 	void* value = hooks.functionAddress(base_address + pointer);
@@ -57,6 +29,7 @@ void redScreenHPMeterFunc() {
 void vehicleHeartbeat() {
 	_patchFunc(0x5AEFCE, 2);
 }
+
 void vehicleLowHealthSoundDecr() {
 	_patchFunc(0x55B87E, 2);
 };
@@ -80,44 +53,54 @@ void Player::patchFunctions() {
 	LOG("PATCHED FUNCTIONS!");
 }
 
-void set_health() {
-	if (player.updateHealth()) {
+uintptr_t Player::playerClass(longlong player_class) {
+	if (player_class) {
+		return player_class;
+	}
+
+	uintptr_t base_address = main_class.getBaseAddress();
+	uintptr_t value = hooks.readAddress(base_address + 0x0208B258, { 0x68, 0x0, 0x10, 0x0 });
+
+	if (!value) {
+		return 0;
+	}
+
+	return value;
+}
+
+int Player::updateHealth(longlong player_class) {
+	uintptr_t player = this->playerClass(player_class);
+	if (!player) {
+		return 0;
+	}
+
+	uintptr_t* value = (uintptr_t*)(player + 0x54);
+	if (!value) {
+		return 0;
+	}
+
+	this->health = (float*)value;
+
+
+	return 1;
+}
+
+void set_health(longlong player_class) {
+	if (player.updateHealth(player_class)) {
 		if (player.health && *player.health > 0.f) {
 			*player.health = 1.f;
 		}
 	}
 }
 
-/*
-// Not sure what this func does in reality, but it runs every single time the health is changed so why not
-void(__fastcall* player_spawned_orig)(float*, longlong, BYTE, longlong); // 0x5E1BE0
-void __fastcall player_spawned_hook(float* health_percentage, longlong param_2, BYTE param_3, longlong param_4)
-{
-	// Run the original
-	player_spawned_orig(health_percentage, param_2, param_3, param_4);
-
-	// Change health
-	set_health();
-}
-
-void(__fastcall* player_healed_orig)(longlong, int, longlong); // 0x54D630
-void __fastcall player_healed_hook(longlong param_1, int new_health, longlong param_3)
-{
-	// Run the original
-	player_healed_orig(param_1, new_health, param_3);
-
-	// Change health
-	set_health();
-}*/
-
 void(__fastcall* main_player_func_orig)(longlong, ulonglong*, ulonglong*, ulonglong); // 0x55B610
-void __fastcall main_player_func_hook(longlong param_1, ulonglong* param_2, ulonglong* param_3, ulonglong param_4)
+void __fastcall main_player_func_hook(longlong player_class, ulonglong* param_2, ulonglong* param_3, ulonglong param_4)
 {
 	// Run the original
-	main_player_func_orig(param_1, param_2, param_3, param_4);
+	main_player_func_orig(player_class, param_2, param_3, param_4);
 
 	// Change health
-	set_health();
+	set_health(player_class);
 }
 
 bool hooked = false;
@@ -128,8 +111,6 @@ void Player::hookFunctions() {
 		return;
 	}
 
-	//hooks.hookFunction(main_class.getBaseAddress() + 0x5E1BE0, &player_spawned_hook, (LPVOID*)&player_spawned_orig, true);
-	//hooks.hookFunction(main_class.getBaseAddress() + 0x54D630, &player_healed_hook, (LPVOID*)&player_healed_orig, true);
 	hooks.hookFunction(main_class.getBaseAddress() + 0x55B610, &main_player_func_hook, (LPVOID*)&main_player_func_orig, true);
 
 	hooked = true;
