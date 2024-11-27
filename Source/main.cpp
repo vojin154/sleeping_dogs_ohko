@@ -5,7 +5,7 @@
 #include "hooks.h"
 
 static CConsole console;
-Player player;
+static Player player;
 static Hooks hooks;
 //static Gui gui;
 
@@ -30,7 +30,13 @@ void Main::initialize() {
 
 	LOG("CONSOLE LOADED!");
 
-	hooks.init();
+	if (!hooks.init()) {
+		LOG_ERROR("Failed to initialize Hooks!");
+		return;
+	}
+	else {
+		LOG("HOOKS INITIALIZED!");
+	}
 
 	if (MH_Initialize() != MH_OK) {
 		LOG_ERROR("Failed to initialize MinHook!");
@@ -48,6 +54,7 @@ void Main::uninitialize() {
 	MH_Uninitialize();
 }
 
+// Disabled
 void Main::update() {
 	/*if (GetAsyncKeyState(VK_F5) & 1)
 	{

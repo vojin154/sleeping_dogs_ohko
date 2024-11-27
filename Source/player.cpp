@@ -1,6 +1,6 @@
 #include "player.h"
 
-Main main_class;
+static Main main_class;
 static Hooks hooks;
 static Player player;
 
