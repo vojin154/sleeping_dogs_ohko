@@ -53,50 +53,56 @@ void* Hooks::functionAddress(uintptr_t pointer) {
     return (void*)this->readAddress(pointer, {});
 }
 
-// I give up
-// For the love of god. Every single signature/pattern scanner, no matter how hard I try, it just doesn't work on x64 programs.
-uintptr_t Hooks::getAddressFromSignature(std::vector<int> signature, uintptr_t startAddress, uintptr_t endAddress) {
-    if (startAddress == 0) {
-        startAddress = this->minimumAddress;
+/*
+    Examples:
+        FOR FUTURE ME: since sigmaker is broken, use: 
+        Cheat Engine -> Memory View -> Tools -> Auto Assemble -> Template -> AOB Injection -> Current Address -> And under aobscan(INJECT, OUR PATTERN HERE)
+
+        pattern - (CODE STYLE) "\x48\x85\xc9\x74\x00\xf3\x0f\x2c\x71"
+        mask - (Has to match pattern! "x" where there's a number/letter and "?" where there's x00) "xxxx?xxxx"
+        mod_name - (Most likely going to be name of the .exe it's used on) "sdhdship.exe"
+*/
+
+uintptr_t Hooks::signatureScan(const char* pattern, const char* mask, LPCSTR mod_name) {
+    static MODULEINFO mod_info;
+    uintptr_t mod = (uintptr_t)GetModuleHandleA(mod_name);
+
+    if (!mod) {
+        LOG_ERROR("COULDN'T GET MODULE HANDLE!");
+        return 0;
     }
-    if (endAddress == 0) {
-        endAddress = this->maximumAddress;
-    }
 
-    MEMORY_BASIC_INFORMATION mbi{ 0 };
-    uintptr_t protectflags = (PAGE_GUARD | PAGE_NOCACHE | PAGE_NOACCESS);
+    GetModuleInformation(GetCurrentProcess(), reinterpret_cast<HMODULE>(mod), &mod_info, sizeof(MODULEINFO));
 
-    // TODO: PRINT EACH SIGNATURE
-    /*std::string text = "Scanning for signature: ";
-    for (size_t i = 0; i < signature.size(); ++i) {
-        text << signature[i] << " ";
-    }
+    uintptr_t range_end = mod + mod_info.SizeOfImage;
 
-    std::string text = "Scanning for signature: " << signature;
-    console.log("Scanning for signature: " << (const char*)signature);*/
+    return this->getAddressFromSignature(pattern, mask, mod, range_end);
+}
 
-    for (uintptr_t i = startAddress; i < endAddress - signature.size(); i++) {
-        //std::cout << "scanning: " << std::hex << i << std::endl;
-        if (VirtualQuery((LPCVOID)i, &mbi, sizeof(mbi))) {
-            if (mbi.Protect & protectflags || !(mbi.State & MEM_COMMIT)) {
-                //std::cout << "Bad Region! Region Base Address: " << mbi.BaseAddress << " | Region end address: " << std::hex << (int)((DWORD)mbi.BaseAddress + mbi.RegionSize) << std::endl;
-                i += mbi.RegionSize;
-                continue; // If the address is bad, then don't read from it
+// Why we keeping both signatureScan and this?
+// This is like a scanner, when we know where approximately the address region could directly be
+// The signatureScan is for when we don't know, so we scan the whole program for the signature (yes unefficient, but barely makes a difference these days)
+uintptr_t Hooks::getAddressFromSignature(const char* pattern, const char* mask, uintptr_t begin, uintptr_t end)
+{
+    uintptr_t patternLength = strlen(pattern);
+
+    for (uintptr_t i = 0; i < end - patternLength; i++)
+    {
+        bool found = true;
+        for (uintptr_t j = 0; j < patternLength; j++)
+        {
+            if (mask[j] != '?' && pattern[j] != *(char*)(begin + i + j))
+            {
+                found = false;
+                break;
             }
-            //std::cout << "Good Region! Region Base Address: " << mbi.BaseAddress << " | Region end address: " << std::hex << (int)((DWORD)mbi.BaseAddress + mbi.RegionSize) << std::endl;
-            for (uintptr_t k = (uintptr_t)mbi.BaseAddress; k < (uintptr_t)mbi.BaseAddress + mbi.RegionSize - signature.size(); k++) {
-                for (uintptr_t j = 0; j < signature.size(); j++) {
-                    if (signature.at(j) != -1 && signature.at(j) != *(::byte*)(k + j))
-                        break;
-                    if (j + 1 == signature.size()) {
-                        return k;
-                    }
-                }
-            }
-            i = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
+        }
+        if (found)
+        {
+            return (begin + i);
         }
     }
-    return NULL;
+    return 0;
 }
 
 /*

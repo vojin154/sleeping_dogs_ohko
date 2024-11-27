@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Windows.h>
+#include <Psapi.h>
 #include <iostream>
 #include <vector>
 #include <format>
@@ -19,7 +21,8 @@ class Hooks
 		bool addressInRange(uintptr_t address = 0);
 		uintptr_t readAddress(uintptr_t pointer, std::vector<unsigned int> offsets);
 		void* functionAddress(uintptr_t pointer);
-		uintptr_t getAddressFromSignature(std::vector<int> signature, uintptr_t startAddress = 0, uintptr_t endAddress = 0);
+		uintptr_t signatureScan(const char* pattern, const char* mask, LPCSTR module_name);
+		uintptr_t getAddressFromSignature(const char* pattern, const char* mask, uintptr_t begin = 0, uintptr_t size = 0);
 		LPVOID hookFunction(uintptr_t address, LPVOID hook, LPVOID* orig, BOOL enable = false);
 		void nop(void* address, int bytes);
 };

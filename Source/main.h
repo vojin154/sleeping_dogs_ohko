@@ -12,6 +12,7 @@ class Main
 {
 	private:
 	public:
+		inline static const char* executable = "sdhdship.exe";
 		void initialize();
 		void uninitialize();
 		void update();

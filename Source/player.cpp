@@ -4,34 +4,33 @@ static Main main_class;
 static Hooks hooks;
 static Player player;
 
-void _patchFunc(uintptr_t pointer, int bytes) {
-	uintptr_t base_address = main_class.getBaseAddress();
-	void* value = hooks.functionAddress(base_address + pointer);
+void _patchFunc(const char* pattern, const char* mask, int bytes) {
+	uintptr_t value = hooks.signatureScan(pattern, mask, main_class.executable);
 	if (!value) {
-		LOG_ERROR("Problem with: " + pointer);
+		//LOG_ERROR("Problem with: " + pattern);
 		return;
 	}
-	hooks.nop(value, bytes);
+	hooks.nop((void*)value, bytes);
 }
 
 void regenFunc() {
-	_patchFunc(0x55B75D, 5);
+	_patchFunc("\xF3\x0F\x11\x4B\x54\xEB\x60", "xxxxxxx", 5);
 }
 
 void heartbeatFunc() {
-	_patchFunc(0x5AEFB7, 3);
+	_patchFunc("\x48\x85\xC9\x74\x7E\xF3", "xxxxxx", 3);
 }
 
 void redScreenHPMeterFunc() {
-	_patchFunc(0x61430E, 5);
+	_patchFunc("\xF3\x0F\x2C\x41\x54\x66\x0F\x6E\xF0", "xxxxxxxxx", 5);
 }
 
 void vehicleHeartbeat() {
-	_patchFunc(0x5AEFCE, 2);
+	_patchFunc("\x84\xC0\x75\x09\x0F\xB6\x0D\x18\x09\xE8\x01", "xxxxxxxxxxx", 2);
 }
 
 void vehicleLowHealthSoundDecr() {
-	_patchFunc(0x55B87E, 2);
+	_patchFunc("\xEB\x08\xF3\x0F\x10\x35\x24\x75\x11\x01", "xxxxxxxxxx", 2);
 };
 
 bool patched = false;
@@ -111,7 +110,14 @@ void Player::hookFunctions() {
 		return;
 	}
 
-	hooks.hookFunction(main_class.getBaseAddress() + 0x55B610, &main_player_func_hook, (LPVOID*)&main_player_func_orig, true);
+	uintptr_t address = hooks.signatureScan("\x40\x53\x48\x83\xEC\x50\x48\x8B\xD9\x48\x8B\x49\x28", "xxxxxxxxxxxxx", main_class.executable);
+
+	if (!address) {
+		LOG_ERROR("COULDN'T GET FUNCTION HOOK ADDRESS FROM SIGNATURE!");
+		return;
+	}
+
+	hooks.hookFunction(address, &main_player_func_hook, (LPVOID*)&main_player_func_orig, true);
 
 	hooked = true;
 
