@@ -4,7 +4,7 @@
 
 This mod for the game Sleeping Dogs makes your character die in one hit as the name says.
 
-I have tested it fairly a lot and I think it should work. If you however do end up having any problems, don't be shy and share them, and in-case you know the answer said problem, why not pull request a fix?
+I have tested it fairly a lot and I think it should work. If you however do end up having any problems, don't be shy and share them, and in-case you know the answer to said problem, why not pull request a fix?
 
 ## Installation
 
